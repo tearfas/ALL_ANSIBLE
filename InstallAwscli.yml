@@ -1,0 +1,48 @@
+---
+- name: Ensure AWS latest version of AWS CLI is installed 
+  hosts: "{{ target }}"
+  tasks:
+
+    - name: Uninstall Older Version Of AWS CLI 
+      yum:
+        name: awscli
+        state: absent
+
+    - name: Copy Installer Zip To Remote Host
+      copy:
+        src: awscliv2.zip
+        dest: /tmp/
+    
+    - name: Unzip The Installer 
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: yes
+    
+    - name: Run Install Script
+      shell:
+        cmd: ./aws/install
+        chdir: /tmp
+
+    - name: Create a symlink 
+      file:
+        src: /usr/local/bin/aws
+        dest: /bin/aws
+        state: link
+
+    - name: Confirm Installation
+      command: 
+        cmd: aws --version
+      register: awsversion
+
+    - name: Print AWS CLI Version Installed 
+      debug:
+        msg: "AWS CLI version {{ awsversion.stdout }} successfully installed"
+
+    - name: Clean Up after successfull Installation 
+      file: 
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/aws
+        - /tmp/awscliv2.zip
